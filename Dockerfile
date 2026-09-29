@@ -11,7 +11,7 @@ COPY tests/fixtures/ tests/fixtures/
 RUN make test-c && make build
 
 # Stage 2: runtime image with the collector, the Python package and the dashboard.
-FROM python:3.12-slim
+FROM python:3.14-slim
 RUN apt-get update \
  && apt-get install -y --no-install-recommends libsqlite3-0 \
  && rm -rf /var/lib/apt/lists/* \
