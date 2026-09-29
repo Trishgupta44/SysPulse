@@ -1,0 +1,35 @@
+[project]
+name = "syspulse"
+version = "0.1.0"
+description = "Linux host telemetry and anomaly detection"
+requires-python = ">=3.10"
+dependencies = ["pandas", "scikit-learn", "numpy"]
+
+[project.optional-dependencies]
+dashboard = ["streamlit", "plotly"]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = [".venv-win", ".venv", "build", "data"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"dashboard/app.py" = ["E402"]
+"scripts/ablate_forest.py" = ["E402"]
+"tests/*" = ["E402"]
+
+[tool.coverage.run]
+source = ["syspulse", "dashboard"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

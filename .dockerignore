@@ -1,0 +1,14 @@
+.git
+.venv*
+__pycache__
+*.pyc
+.pytest_cache
+build
+data/*
+!data/live-run.db
+results
+*.db
+*.db-wal
+*.db-shm
+docs/*
+!docs/FAQ.md

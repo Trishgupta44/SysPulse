@@ -1,0 +1,46 @@
+# Live mode:  docker compose up --build        dashboard at http://localhost:8501
+# Demo mode:  docker compose --profile demo up --build demo     dashboard at http://localhost:8502
+#
+# Inside a container /proc/stat and /proc/meminfo describe the host (or the Docker Desktop VM),
+# not the container's cgroup, so the collector reports machine-wide load. journald is not
+# available in containers, so the log parser is not started here; use the systemd install for events.
+services:
+  collector:
+    image: syspulse
+    build: .
+    command: ["syspulse-collector", "--db", "/data/metrics.db", "--interval", "5"]
+    volumes:
+      - data:/data
+    restart: unless-stopped
+
+  dashboard:
+    image: syspulse
+    build: .
+    depends_on:
+      - collector
+    ports:
+      - "8501:8501"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8501/_stcore/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - data:/data
+    restart: unless-stopped
+
+  demo:
+    image: syspulse
+    build: .
+    profiles: ["demo"]
+    environment:
+      SYSPULSE_DB: /tmp/demo.db
+    command: >
+      sh -c "python -m syspulse.demo --db /tmp/demo.db --out /tmp/results &&
+             streamlit run dashboard/app.py --server.address=0.0.0.0 --server.port=8502
+             --server.headless=true --browser.gatherUsageStats=false"
+    ports:
+      - "8502:8502"
+
+volumes:
+  data:

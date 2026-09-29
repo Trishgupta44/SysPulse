@@ -1,0 +1,12 @@
+.venv*/
+__pycache__/
+*.pyc
+.pytest_cache/
+build/
+*.db
+*.db-wal
+*.db-shm
+/results/
+.cursor
+.playwright-mcp/
+.coverage

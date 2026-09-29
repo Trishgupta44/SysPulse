@@ -1,0 +1,18 @@
+[Unit]
+Description=SysPulse journald log parser (one pass)
+After=syspulse-collector.service
+
+[Service]
+Type=oneshot
+ExecStart="@PYTHON@" -m syspulse.logparser --db /var/lib/syspulse/metrics.db --cursor-file /var/lib/syspulse/journal.cursor
+WorkingDirectory=@ROOT@
+Environment="PYTHONPATH=@ROOT@"
+StateDirectory=syspulse
+User=@USER@
+# Reading the system journal needs the systemd-journal group.
+SupplementaryGroups=systemd-journal
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ReadWritePaths=/var/lib/syspulse

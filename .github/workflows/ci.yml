@@ -1,0 +1,77 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: System packages
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libsqlite3-dev shellcheck
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Python dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: C unit tests
+        run: make test-c
+
+      - name: Build collector
+        run: make build
+
+      - name: Shell scripts
+        run: |
+          bash -n scripts/inject_faults.sh
+          shellcheck -S error scripts/inject_faults.sh
+
+      - name: Systemd units verify
+        run: |
+          sudo install -m 0755 build/syspulse-collector /usr/local/bin/syspulse-collector
+          mkdir -p /tmp/units
+          for f in systemd/*; do
+            sed -e "s|@PREFIX@|/usr/local|g" -e "s|@USER@|root|g" -e "s|@ROOT@|$PWD|g" -e "s|@PYTHON@|/usr/bin/python3|g" "$f" > "/tmp/units/$(basename "$f")"
+          done
+          systemd-analyze verify /tmp/units/syspulse-collector.service /tmp/units/syspulse-logparser.service /tmp/units/syspulse-logparser.timer
+
+      - name: Python and integration tests, with a coverage floor
+        run: python -m pytest -q --cov --cov-fail-under=90
+
+      - name: Synthetic end-to-end demo
+        run: python -m syspulse.demo --db /tmp/demo.db --out results
+
+      - name: Upload demo results
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-results
+          path: results/
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: syspulse:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Container smoke test
+        run: |
+          docker run --rm syspulse:ci syspulse-collector --help
+          docker run --rm syspulse:ci python -m syspulse.demo --db /tmp/d.db --out /tmp/r

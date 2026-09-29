@@ -1,0 +1,24 @@
+[Unit]
+Description=SysPulse host metrics collector
+After=local-fs.target
+
+[Service]
+Type=simple
+ExecStart=@PREFIX@/bin/syspulse-collector --db /var/lib/syspulse/metrics.db --interval 5
+Restart=on-failure
+RestartSec=5
+# Creates /var/lib/syspulse owned by the service user.
+StateDirectory=syspulse
+StateDirectoryMode=0755
+User=@USER@
+# Hardening: the collector only reads /proc and writes its own state directory.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/syspulse
+CapabilityBoundingSet=
+Nice=5
+
+[Install]
+WantedBy=multi-user.target
